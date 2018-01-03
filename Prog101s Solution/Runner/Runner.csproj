@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\001_Procedural\001_Procedural.csproj" />
+    <ProjectReference Include="..\xxx_FunctionalConcepts\xxx_FunctionalConcepts.csproj" />
   </ItemGroup>
 
 </Project>

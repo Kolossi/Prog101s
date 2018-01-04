@@ -8,13 +8,14 @@ namespace Prog101s.ObjectOrientated_Simple
         {
             var storage = new Storage();
             var people = storage.LoadPeople();
-            storage.UpdateSpendFromStorage(people);
+            storage.UpdateSpend(people);
 
             for (int i = 0; i < people.Length; i++)
             {
-                UpdateDiscount(people[i]);
+                people[i].SetDiscount();
             }
-            WriteDiscountReport(people);
+            var reporter = new Reporter(people);
+            reporter.WriteDiscountReport();
         }
 
 

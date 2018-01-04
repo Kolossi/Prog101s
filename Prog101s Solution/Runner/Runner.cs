@@ -7,7 +7,7 @@ namespace Prog101s
         static void Main(string[] args)
         {
             Procedural.Procedures.Process();
-            FunctionalConcepts.Concepts.Process();
+            FunctionalConceptsValueTypes.Concepts.Process();
             Console.ReadLine();
         }
     }

@@ -6,8 +6,8 @@ namespace Prog101s
     {
         static void Main(string[] args)
         {
-            Procedural.Procedures.Process();
-            FunctionalConceptsValueTypes.Concepts.Process();
+            //Procedural.Procedures.Process();
+            SetoidSemigroupMonoid.Concepts.Process();
             Console.ReadLine();
         }
     }

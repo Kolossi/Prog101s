@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+#pragma warning disable 659 //this ignores warnings that we have override Equals(), but not GetHashCode()
 
 namespace Prog101s.Functor
 {
@@ -53,3 +54,4 @@ namespace Prog101s.Functor
         }
     }
 }
+#pragma warning restore 659

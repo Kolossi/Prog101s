@@ -1,12 +1,29 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+#pragma warning disable 659 //this ignores warnings that we have override Equals(), but not GetHashCode()
+
 
 namespace Prog101s.SetoidSemigroupMonoid
 {
-    //public interface ISetoid<T>
+    public interface ISetoid<T>
+    {
+        bool IsEquivalentTo(T other);
+    }
+
+    //public class MyClass
     //{
-    //    bool Equals(T other);
+    //    public override bool Equals(object obj)
+    //    {
+    //        var other = obj as MyClass;
+    //        if (other == null) return false;
+    //        return this.IsEquivalentTo(other);
+    //    }
+
+    //    public bool IsEquivalentTo(MyClass other)
+    //    {
+    //        // ...
+    //    }
     //}
 
     public interface ISemigroup<T> // where T : ISetoid<T>
@@ -29,6 +46,7 @@ namespace Prog101s.SetoidSemigroupMonoid
             AssociativeOperation = associativeOperation;
         }
 
+        // we can't really test over all possible values, so pass in some values to test with
         // needs to have all (x.y).z == x.(y.z)
         public bool IsValidSemigroup(ICollection<T> itemsToTestWith)
         {
@@ -52,13 +70,14 @@ namespace Prog101s.SetoidSemigroupMonoid
         }
     }
 
-    public class Monoid<T> : Semigroup<T> //where T : ISetoid<T>
+    public class Monoid<T> : IMonoid<T>
     {
+        public Func<T, T, T> AssociativeOperation { get; set; }
         public T Identity { get; set; }
 
         public Monoid(Func<T, T, T> associativeOperation, T identity)
-            : base(associativeOperation)
         {
+            AssociativeOperation = associativeOperation;
             Identity = identity;
         }
 
@@ -69,8 +88,10 @@ namespace Prog101s.SetoidSemigroupMonoid
 
             foreach (var x in itemsToTestWith)
             {
-                if (!AssociativeOperation(Identity, x).Equals(x) // Identity is not a left identity with x
-                    || !AssociativeOperation(x, Identity).Equals(x)) // Identity is not a right Indentity with x
+                // Identity is not a left identity with x
+                if (!AssociativeOperation(Identity, x).Equals(x)
+                    // Identity is not a right Indentity with x
+                    || !AssociativeOperation(x, Identity).Equals(x)) 
                 {
                     // Identity is not a two-sided identity with x
                     return false;
@@ -80,9 +101,31 @@ namespace Prog101s.SetoidSemigroupMonoid
             return IsValidSemigroup(itemsToTestWith);
         }
 
+        // we can't really test over all possible values, so pass in some values to test with
+        // needs to have all (x.y).z == x.(y.z)
+        public bool IsValidSemigroup(ICollection<T> itemsToTestWith)
+        {
+            foreach (var x in itemsToTestWith)
+            {
+                foreach (var y in itemsToTestWith)
+                {
+                    foreach (var z in itemsToTestWith)
+                    {
+                        // x,y,z are values from itemsToTestWith
+                        if (!AssociativeOperation(AssociativeOperation(x, y), z)
+                            .Equals(AssociativeOperation(x, AssociativeOperation(y, z))))
+                        {
+                            // the operation is not associative for this x,y,z
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        }
     }
 
-    public class Floatish // : ISetoid<Floatish>
+    public class Floatish
     {
         public float Value;
 
@@ -93,12 +136,11 @@ namespace Prog101s.SetoidSemigroupMonoid
 
         public override bool Equals(object obj)
         {
-            // c# : null checks x2 ...
+            // c# : null checks 
             var other = obj as Floatish;
             return Math.Abs(Value - other.Value) < 0.00001;
         }
 
-        // functor?
         public static Floatish FloatishAdd(Floatish x, Floatish y)
         {
             return new Floatish(x.Value + y.Value);
@@ -124,11 +166,9 @@ namespace Prog101s.SetoidSemigroupMonoid
 
         public static void CheckIntAddSemigroup()
         {
-            var positiveInts = Enumerable.Range(1, 100).ToArray();
-
-            var intSemigroup = new Semigroup<int>(IntAdd);
-
-            var semigroupValid = intSemigroup.IsValidSemigroup(positiveInts);
+            var semigroupValid = new Semigroup<int>(Concepts.IntAdd)
+                .IsValidSemigroup(Enumerable.Range(1, 100).ToArray());
+            // true
 
             Console.WriteLine(string.Format("Positive ints with add is {0}a semigroup",
                 !semigroupValid ? "NOT " : ""));
@@ -138,7 +178,7 @@ namespace Prog101s.SetoidSemigroupMonoid
         {
             var positiveInts = Enumerable.Range(1, 100).ToArray();
 
-            var intSemigroup = new Semigroup<int>(IntSubtract);
+            var intSemigroup = new Semigroup<int>(Concepts.IntSubtract);
 
             var semigroupValid = intSemigroup.IsValidSemigroup(positiveInts);
 
@@ -148,12 +188,11 @@ namespace Prog101s.SetoidSemigroupMonoid
 
         public static void CheckFloatAddSemigroup()
         {
-            var positiveFloats = Enumerable.Range(1, 100)
-                .Select(i => (float) i / 1000f).ToArray(); //0.001, 0.002, ...0.100
-
-            var floatSemigroup = new Semigroup<float>(FloatAdd);
-
-            var semigroupValid = floatSemigroup.IsValidSemigroup(positiveFloats);
+            var semigroupValid = new Semigroup<float>(Concepts.FloatAdd)
+                .IsValidSemigroup(Enumerable.Range(1, 100)
+                                    .Select(i => (float)i / 1000f)  //0.001, 0.002, ...0.100
+                                    .ToArray());
+            //false
 
             Console.WriteLine(string.Format("Positive floats with add is {0}a semigroup",
                 !semigroupValid ? "NOT " : ""));
@@ -161,14 +200,12 @@ namespace Prog101s.SetoidSemigroupMonoid
 
         public static void CheckFloatAddEqualishSemigroup()
         {
-            var positiveFloatishs = Enumerable.Range(1, 100)
-                .Select(i => (float) i / 1000f) //0.001, 0.002, ...0.100
-                .Select(f => new Floatish(f))
-                .ToArray();
-
-            var floatSemigroup = new Semigroup<Floatish>(Floatish.FloatishAdd);
-
-            var semigroupValid = floatSemigroup.IsValidSemigroup(positiveFloatishs);
+            var semigroupValid = new Semigroup<Floatish>(Floatish.FloatishAdd)
+                .IsValidSemigroup(Enumerable.Range(1, 100)
+                    .Select(i => (float)i / 1000f) //0.001, 0.002, ...0.100
+                    .Select(f => new Floatish(f))
+                    .ToArray());
+            //true
 
             Console.WriteLine(string.Format("Positive floats with add and equalish is {0}a semigroup",
                 !semigroupValid ? "NOT " : ""));
@@ -176,11 +213,9 @@ namespace Prog101s.SetoidSemigroupMonoid
 
         public static void CheckPositiveIntAddMonoid()
         {
-            var positiveInts = Enumerable.Range(1, 100).ToArray();
-
-            var intMonoid = new Monoid<int>(IntAdd, 0);
-
-            var monoidValid = intMonoid.IsValidMonoid(positiveInts);
+            var monoidValid = new Monoid<int>(Concepts.IntAdd, 0)
+                .IsValidMonoid(Enumerable.Range(1, 100).ToArray());
+            // false - identity value 0 is not in collection
 
             Console.WriteLine(string.Format("Positive ints with add is {0}a monoid",
                 !monoidValid ? "NOT " : ""));
@@ -188,11 +223,9 @@ namespace Prog101s.SetoidSemigroupMonoid
 
         public static void CheckNonNegativeIntAddMonoid()
         {
-            var nonNegativeInts = Enumerable.Range(0, 100).ToArray();
-
-            var intMonoid = new Monoid<int>(IntAdd, 0);
-
-            var monoidValid = intMonoid.IsValidMonoid(nonNegativeInts);
+            var monoidValid = new Monoid<int>(Concepts.IntAdd, 0)
+                .IsValidMonoid(Enumerable.Range(0, 100).ToArray());
+            //true
 
             Console.WriteLine(string.Format("Non negative ints with add is {0}a monoid",
                 !monoidValid ? "NOT " : ""));
@@ -214,4 +247,5 @@ namespace Prog101s.SetoidSemigroupMonoid
         }
     }
 }
+#pragma warning restore 659
 
